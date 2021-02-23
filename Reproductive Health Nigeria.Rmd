@@ -1,0 +1,239 @@
+
+## Global  ----
+
+```{r load-packages, message = FALSE}
+library(tidyverse)
+library(changepoint)
+```
+
+```{r load-dataset}
+df <- read.csv("iot_nigeria_dataset.csv")
+df$week <- as.Date(df$week,"%m/%d/%Y")
+```
+
+```{r function to detect changepoints}
+cptfn <- function(data, pen) {
+  ans <- cpt.mean(data, test.stat="Normal", method = "PELT", penalty = "Manual", pen.value = pen) 
+  length(cpts(ans)) + 1
+}
+```
+
+```{r function to plot graphs}
+
+gtplot_cp_nigeria <- function(y, mean_y) {
+
+plot <- ggplot(data = df) + 
+  annotate("rect", xmin = as.Date("2020-03-31"), xmax = as.Date("2020-05-04"),
+           ymin = -Inf, ymax = Inf, fill = "#38aba6", alpha = 0.8) +
+  annotate("rect", xmin = as.Date("2020-05-04"), xmax = as.Date("2020-06-01"),
+           ymin = -Inf, ymax = Inf, fill = "#38aba6", alpha = 0.6) +
+  annotate("rect", xmin = as.Date("2020-06-01"), xmax = as.Date("2020-09-03"),
+           ymin = -Inf, ymax = Inf, fill = "#38aba6", alpha = 0.4) +
+  annotate("rect", xmin = as.Date("2020-09-03"), xmax = as.Date("2021-01-31"),
+           ymin = -Inf, ymax = Inf, fill = "#38aba6", alpha = 0.2) +
+  annotate(geom = "text", x = as.Date("2020-04-15"), y = 15, label = "Lockdown phase-1", angle = 90, color = "#3e2c38") +
+  annotate(geom = "text", x = as.Date("2020-05-20"), y = 15, label = "Lockdown phase-2", angle = 90, color = "#3e2c38") +
+  annotate(geom = "text", x = as.Date("2020-07-15"), y = 15, label = "Lockdown phase-3", angle = 90, color = "#3e2c38") +
+  annotate(geom = "text", x = as.Date("2020-11-15"), y = 15, label = "Lockdown phase-4", angle = 90, color = "#3e2c38") +
+  # geom_line(mapping = aes(x = week, y = y), color = '#157067') + 
+  geom_smooth(aes(x = week, y = y), se = FALSE, method = "loess", color = "#7a6374", span = 0.17) +  
+  geom_line(aes(x= week, y=mean_y), color='red') + 
+  ylim(0,100) +
+  scale_x_date(date_breaks = "2 months", date_labels = "%b %y") +
+  ylab("Interest over time") +
+  xlab("") +
+  theme_minimal() +
+  theme(legend.title = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(size = 12))
+
+return(plot)
+
+}
+
+```
+
+
+## Theme-1: Pregnancy ---- 
+
+```{r Theme-1: elbow-plot-for-changepoint-analysis}
+pen.vals <- seq(0, 1000,10)
+
+elbowplotData <- unlist(lapply(pen.vals, function(p) 
+                  cptfn(data = df$iot_pregnancy, pen = p)))
+
+plot(pen.vals,elbowplotData, 
+     xlab = "PELT penalty parameter",
+     ylab = " ",
+     main = " ")
+
+## Based on the plot, we choose the penalty value as 420
+```
+
+
+
+```{r Theme-1: changepoints-computation}
+
+penalty.val <- 420
+mcpt <- cpt.mean(df$iot_pregnancy, penalty='Manual', pen.value=penalty.val, method='PELT')
+
+# Get the index of change points:
+mcpt.pts <- attributes(mcpt)$cpts 
+mcpt.pts 
+
+
+# Get the position of the change points:
+df$week[mcpt.pts]
+
+# Get mean and variance of the different segments
+mcpt.var<- attributes(mcpt)$param.est$var
+mcpt.var
+mcpt.mean<- attributes(mcpt)$param.est$mean
+mcpt.mean
+
+df$mean_preg <- rep(mcpt.mean, c(mcpt.pts[1], diff(mcpt.pts)))
+
+# number of cut points
+length(mcpt.pts)
+```
+
+## Theme-2: Pregnancy Test---- 
+
+```{r Theme-2: elbow-plot-for-changepoint-analysis}
+pen.vals <- seq(0, 1000,10)
+
+elbowplotData <- unlist(lapply(pen.vals, function(p) 
+                  cptfn(data = df$iot_pregnancy_test, pen = p)))
+
+plot(pen.vals,elbowplotData, 
+     xlab = "PELT penalty parameter",
+     ylab = " ",
+     main = " ")
+
+## Based on the plot above, we choose the penalty value as 600
+
+```
+
+
+
+```{r Theme-2: changepoints-computation}
+
+penalty.val <- 600
+mcpt <- cpt.mean(df$iot_pregnancy_test, penalty='Manual', pen.value=penalty.val, method='PELT')
+
+# Get the index of change points:
+mcpt.pts <- attributes(mcpt)$cpts 
+mcpt.pts 
+
+
+# Get the position of the change points:
+df$week[mcpt.pts]
+
+# Get mean and variance of the different segments
+mcpt.var<- attributes(mcpt)$param.est$var
+mcpt.var
+mcpt.mean<- attributes(mcpt)$param.est$mean
+mcpt.mean
+
+df$mean_preg_test <- rep(mcpt.mean, c(mcpt.pts[1], diff(mcpt.pts)))
+
+# number of cut points
+length(mcpt.pts)
+```
+
+## Theme-3: Abortion
+
+```{r Theme-3: elbow-plot-for-changepoint-analysis}
+pen.vals <- seq(0, 1000,10)
+
+elbowplotData <- unlist(lapply(pen.vals, function(p) 
+                  cptfn(data = df$iot_abortion, pen = p)))
+
+plot(pen.vals,elbowplotData, 
+     xlab = "PELT penalty parameter",
+     ylab = " ",
+     main = " ")
+
+## Based on the plot above, we choose the penalty value as 550
+```
+
+
+
+```{r Theme-3: changepoints-computation}
+
+penalty.val <- 550
+mcpt <- cpt.mean(df$iot_abortion, penalty='Manual', pen.value=penalty.val, method='PELT')
+
+# Get the index of change points:
+mcpt.pts <- attributes(mcpt)$cpts 
+mcpt.pts 
+
+
+# Get the position of the change points:
+df$week[mcpt.pts]
+
+# Get mean and variance of the different segments
+mcpt.var<- attributes(mcpt)$param.est$var
+mcpt.var
+mcpt.mean<- attributes(mcpt)$param.est$mean
+mcpt.mean
+
+df$mean_abortion <- rep(mcpt.mean, c(mcpt.pts[1], diff(mcpt.pts)))
+
+# number of cut points
+length(mcpt.pts)
+```
+
+
+## Theme-4: Misoprostol
+
+```{r Theme-4: elbow-plot-for-changepoint-analysis}
+pen.vals <- seq(0, 1000,10)
+
+elbowplotData <- unlist(lapply(pen.vals, function(p) 
+                  cptfn(data = df$iot_misoprostol, pen = p)))
+
+plot(pen.vals,elbowplotData, 
+     xlab = "PELT penalty parameter",
+     ylab = " ",
+     main = " ")
+## Based on the plot above, we choose the penalty value as 950
+```
+
+
+
+```{r Theme-3: changepoints-computation}
+
+penalty.val <- 950
+mcpt <- cpt.mean(df$iot_misoprostol, penalty='Manual', pen.value=penalty.val, method='PELT')
+
+# Get the index of change points:
+mcpt.pts <- attributes(mcpt)$cpts 
+mcpt.pts 
+
+
+# Get the position of the change points:
+df$week[mcpt.pts]
+
+# Get mean and variance of the different segments
+mcpt.var<- attributes(mcpt)$param.est$var
+mcpt.var
+mcpt.mean<- attributes(mcpt)$param.est$mean
+mcpt.mean
+
+df$mean_misoprostol <- rep(mcpt.mean, c(mcpt.pts[1], diff(mcpt.pts)))
+
+# number of cut points
+length(mcpt.pts)
+```
+
+## Plot Graphs ----
+
+```{r plot graphs}
+(plot1 <- gtplot_cp_nigeria(y = df$iot_pregnancy, mean_y = df$mean_preg))
+(plot2 <- gtplot_cp_nigeria(y = df$iot_pregnancy_test, mean_y = df$mean_preg_test))
+(plot3 <- gtplot_cp_nigeria(y = df$iot_abortion, mean_y = df$mean_abortion))
+(plot4 <- gtplot_cp_nigeria(y = df$iot_misoprostol, mean_y = df$mean_misoprostol))
+
+```
+
